@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Verb Match: JP → EN</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="app-header">
+    <h1>Verb Match: JP → EN</h1>
+    <div class="controls">
+      <label class="file-label">
+        <input id="csvInput" type="file" accept=".csv" />
+        Load CSV
+      </label>
+      <button id="resetBtn" class="btn">Reset</button>
+      <button id="revealBtn" class="btn">Reveal</button>
+      <span id="score" class="score">0 / 0</span>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="board">
+      <table class="verb-table">
+        <thead>
+          <tr>
+            <th>Japanese Base</th>
+            <th>English Base</th>
+            <th>English Past Tense</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <!-- rows injected here -->
+        </tbody>
+      </table>
+    </section>
+
+    <aside class="tray">
+      <h2 class="tray-title">Tiles</h2>
+      <div id="tileBank" class="tile-bank" aria-label="Answer tiles"></div>
+      <p class="hint">Tip: drag the correct English base/past tile into the matching row.</p>
+    </aside>
+  </main>
+
+  <footer class="app-footer">
+    <details>
+      <summary>How to use</summary>
+      <ol>
+        <li>Put a <code>words.csv</code> file next to this page (or click <em>Load CSV</em> to upload one).</li>
+        <li>The CSV must have the header: <code>jpB,enB,enP</code>.</li>
+        <li>Example row: <code>食べる,eat,ate</code></li>
+      </ol>
+      <p>If you open this file locally, use a local server (e.g. VS Code Live Server) so the CSV can be fetched.</p>
+    </details>
+  </footer>
+
+  <script src="app.js" defer></script>
+</body>
+</html>
