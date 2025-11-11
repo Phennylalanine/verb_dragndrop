@@ -3,17 +3,47 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Verb Match: JP → EN</title>
+  <title>Verb Match Game</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
+
+  <!-- ✅ HUD: XP + LEVEL + COMBO + TIMER -->
+  <div id="gameHUD" class="hud">
+
+    <div class="hud-section">
+      <span class="hud-label">LEVEL</span>
+      <span id="levelDisplay" class="hud-value">1</span>
+    </div>
+
+    <div class="hud-section xp-area">
+      <span class="hud-label">XP</span>
+      <div class="xp-bar-bg">
+        <div id="xpBar" class="xp-bar"></div>
+      </div>
+      <span id="xpText" class="hud-value small">0 / 100</span>
+    </div>
+
+    <div class="hud-section">
+      <span class="hud-label">COMBO</span>
+      <span id="comboDisplay" class="combo-value">x1</span>
+    </div>
+
+    <div class="hud-section">
+      <span class="hud-label">TIME</span>
+      <span id="timerDisplay" class="hud-value">0.0s</span>
+      <span class="hud-label small">BEST</span>
+      <span id="bestTimeDisplay" class="hud-value small">--</span>
+    </div>
+
+  </div>
+
+  <!-- ✅ Popup -->
+  <div id="levelUpPopup" class="popup">LEVEL UP!</div>
+
   <header class="app-header">
     <h1>Verb Match: JP → EN</h1>
     <div class="controls">
-      <label class="file-label">
-        <input id="csvInput" type="file" accept=".csv" />
-        Load CSV
-      </label>
       <button id="resetBtn" class="btn">Reset</button>
       <button id="revealBtn" class="btn">Reveal</button>
       <span id="score" class="score">0 / 0</span>
@@ -27,33 +57,18 @@
           <tr>
             <th>Japanese Base</th>
             <th>English Base</th>
-            <th>English Past Tense</th>
+            <th>English Past</th>
           </tr>
         </thead>
-        <tbody id="tableBody">
-          <!-- rows injected here -->
-        </tbody>
+        <tbody id="tableBody"></tbody>
       </table>
     </section>
 
     <aside class="tray">
       <h2 class="tray-title">Tiles</h2>
-      <div id="tileBank" class="tile-bank" aria-label="Answer tiles"></div>
-      <p class="hint">Tip: drag the correct English base/past tile into the matching row.</p>
+      <div id="tileBank" class="tile-bank"></div>
     </aside>
   </main>
-
-  <footer class="app-footer">
-    <details>
-      <summary>How to use</summary>
-      <ol>
-        <li>Put a <code>words.csv</code> file next to this page (or click <em>Load CSV</em> to upload one).</li>
-        <li>The CSV must have the header: <code>jpB,enB,enP</code>.</li>
-        <li>Example row: <code>食べる,eat,ate</code></li>
-      </ol>
-      <p>If you open this file locally, use a local server (e.g. VS Code Live Server) so the CSV can be fetched.</p>
-    </details>
-  </footer>
 
   <script src="app.js" defer></script>
 </body>
