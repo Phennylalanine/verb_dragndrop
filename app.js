@@ -45,8 +45,8 @@ let xp = 0;
 const BASE_XP = 10;
 const PENALTY = 0.5;
 const COMBO_STEP = 1;
-const COMBO_BONUS = 0.05;
-const MAX_COMBO = 10;
+const COMBO_BONUS = 0.5;
+const MAX_COMBO = 50;
 
 // ---------- Audio ----------
 const SFX = {
@@ -240,8 +240,8 @@ function nextRound() {
 
   const label =
     r.type === 'base'
-      ? '現在形（Base）'
-      : '過去形（Past）';
+      ? '現在形'
+      : '過去形';
 
   verbPrompt.innerHTML = `
     <div class="jp-big">${r.row.jp}</div>
