@@ -1,13 +1,17 @@
+/* =============================
+   FUN & LIGHTHEARTED GAME THEME
+   ============================= */
+
 /* ===== HUD BAR ===== */
 .hud {
   width: 100%;
-  background: #0f172a;
+  background: linear-gradient(90deg, #bae6fd, #a7f3d0);
   padding: 12px;
   display: flex;
   justify-content: space-around;
   align-items: center;
-  color: #e5e7eb;
-  border-bottom: 2px solid #1e293b;
+  color: #1f2937;
+  border-bottom: 2px solid #7dd3fc;
   font-family: Arial, sans-serif;
 }
 
@@ -18,7 +22,7 @@
 .hud-label {
   display: block;
   font-size: 0.7rem;
-  color: #94a3b8;
+  color: #475569;
 }
 
 .hud-value {
@@ -33,7 +37,7 @@
 .xp-bar-bg {
   width: 140px;
   height: 10px;
-  background: #1e293b;
+  background: #e0f2fe;
   border-radius: 6px;
   overflow: hidden;
   margin: 4px auto;
@@ -42,15 +46,15 @@
 .xp-bar {
   height: 10px;
   width: 0%;
-  background: linear-gradient(90deg, #38bdf8, #0ea5e9);
+  background: linear-gradient(90deg, #7dd3fc, #38bdf8);
   transition: width 0.3s ease-out;
 }
 
-/* COMBO FLAME */
+/* COMBO */
 .combo-value {
   font-size: 1.4rem;
-  color: #fbbf24;
-  text-shadow: 0 0 6px #f59e0b;
+  color: #f59e0b;
+  text-shadow: 0 0 6px rgba(245,158,11,0.4);
 }
 
 /* LEVEL UP POPUP */
@@ -59,13 +63,13 @@
   top: 40vh;
   left: 50%;
   transform: translateX(-50%) scale(0.5);
-  background: #22c55e;
-  padding: 18px 40px;
-  border-radius: 12px;
+  background: linear-gradient(135deg, #86efac, #7dd3fc);
+  padding: 20px 44px;
+  border-radius: 20px;
   font-size: 2rem;
-  color: white;
+  color: #064e3b;
   display: none;
-  box-shadow: 0 0 25px rgba(0,0,0,0.4);
+  box-shadow: 0 0 25px rgba(0,0,0,0.15);
   animation: popupAnim 0.8s ease forwards;
 }
 
@@ -75,28 +79,38 @@
   100% {opacity:1; transform: translateX(-50%) scale(1);}
 }
 
-/* ===== YOUR ORIGINAL STYLES BELOW (unchanged) ===== */
+/* ===== COLOR SYSTEM ===== */
 
 :root{
-  --bg:#0f172a;
-  --panel:#111827;
-  --muted:#94a3b8;
-  --accent:#38bdf8;
-  --accent-2:#22c55e;
-  --danger:#ef4444;
-  --tile:#1f2937;
-  --tile-border:#334155;
-  --drop:#0ea5e9;
+  --bg:#fdf6ff;
+  --panel:#ffffff;
+  --muted:#7c7c9a;
+  --accent:#7dd3fc;
+  --accent-2:#86efac;
+  --danger:#fca5a5;
+  --tile:#f0f9ff;
+  --tile-border:#bae6fd;
+  --drop:#60a5fa;
 }
 
-*{box-sizing:border-box}
-html,body{height:100%}
+/* ===== BASE RESET ===== */
+
+*{
+  box-sizing:border-box;
+}
+
+html,body{
+  height:100%;
+}
+
 body{
   margin:0;
   font-family: system-ui, -apple-system, Segoe UI, Roboto, Noto Sans, sans-serif;
-  background: radial-gradient(1200px 600px at 10% -10%, #1e293b 10%, var(--bg)), #000;
-  color:#e5e7eb;
+  background: linear-gradient(135deg, #fdf6ff, #ecfeff);
+  color:#1f2937;
 }
+
+/* ===== HEADER / FOOTER ===== */
 
 .app-header, .app-footer{
   max-width:1100px;
@@ -111,18 +125,36 @@ body{
   gap:12px;
 }
 
-.controls{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+.controls{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
 .btn{
   background:var(--panel);
-  border:1px solid var(--tile-border);
-  color:#e5e7eb;
-  padding:8px 12px;
-  border-radius:10px;
+  border:2px solid var(--tile-border);
+  color:#1f2937;
+  padding:8px 14px;
+  border-radius:14px;
   cursor:pointer;
+  font-weight:600;
+  transition: all 0.15s ease;
 }
-.score{margin-left:6px; color:var(--muted)}
 
-/* Main game layout: stacked vertically (no side panel) */
+.btn:hover{
+  background:#ecfeff;
+  transform: translateY(-1px);
+}
+
+.score{
+  margin-left:6px;
+  color:var(--muted);
+}
+
+/* ===== MAIN LAYOUT ===== */
+
 .layout{
   display:flex;
   flex-direction:column;
@@ -132,13 +164,18 @@ body{
   padding:12px 20px 32px;
 }
 
+/* ===== PANELS ===== */
 
-.board{
-  background:rgba(17,24,39,.6);
-  border:1px solid var(--tile-border);
-  border-radius:16px;
-  padding:16px;
+.board,
+.tray{
+  background:#ffffff;
+  border:2px solid #bae6fd;
+  border-radius:20px;
+  padding:18px;
+  box-shadow: 0 6px 12px rgba(0,0,0,0.05);
 }
+
+/* ===== TABLE ===== */
 
 .verb-table{
   width:100%;
@@ -146,34 +183,34 @@ body{
   border-spacing:0;
   border-radius:12px;
 }
+
 .verb-table thead th{
-  background:#0b1220;
+  background:#e0f2fe;
   padding:10px 12px;
+  color:#0369a1;
 }
+
 .verb-table tbody td{
   padding:10px 12px;
-  border-bottom:1px solid rgba(148,163,184,.18);
+  border-bottom:1px solid rgba(148,163,184,.25);
   height:72px;
 }
 
-/* Big Japanese verb display */
+/* ===== VERB PROMPT ===== */
+
 .verb-prompt{
   font-size:2.2rem;
   font-weight:700;
   text-align:center;
-  background:#020617;
-  border:1px solid var(--tile-border);
-  border-radius:14px;
-  padding:18px;
+  background:#ecfeff;
+  border:2px solid #7dd3fc;
+  border-radius:18px;
+  padding:20px;
   margin-bottom:16px;
+  color:#0369a1;
 }
-/* Answer choices area */
-.tray{
-  background:rgba(17,24,39,.6);
-  border:1px solid var(--tile-border);
-  border-radius:16px;
-  padding:16px;
-}
+
+/* ===== ANSWER TRAY ===== */
 
 .tray-title{
   margin:0 0 12px;
@@ -181,37 +218,63 @@ body{
   color:var(--muted);
   text-align:center;
 }
-/* Tile after it has been used */
-.tile.used{
-  opacity:0.35;
-  pointer-events:none;
-  cursor:default;
-}
 
-
+/* ===== DROPZONE ===== */
 
 .dropzone{
-  border:1.5px dashed rgba(148,163,184,.28);
-  border-radius:12px;
+  border:2px dashed #bae6fd;
+  border-radius:14px;
   min-height:50px;
   display:flex;
   align-items:center;
   justify-content:center;
+  background:#f8fbff;
 }
-.dropzone.hover{ border-color:var(--drop); }
+
+.dropzone.hover{
+  border-color:var(--drop);
+  background:#ecfeff;
+}
+
+/* ===== TILE BANK ===== */
+
 .tile-bank{
   display:grid;
   grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap:10px;
+  gap:12px;
 }
+
+/* ===== TILES ===== */
+
 .tile{
-  background:#111827;
-  border:1px solid var(--tile-border);
-  border-radius:12px;
-  padding:10px 12px;
+  background:#f0f9ff;
+  border:2px solid #bae6fd;
+  border-radius:16px;
+  padding:12px 14px;
   text-align:center;
   font-weight:600;
   cursor:grab;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
 }
-.tile.correct{ border-color: var(--accent-2); }
-.tile.wrong{ border-color: var(--danger); }
+
+.tile:hover{
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+  background:#ecfeff;
+}
+
+.tile.used{
+  opacity:0.4;
+  pointer-events:none;
+  cursor:default;
+}
+
+.tile.correct{
+  background:#dcfce7;
+  border-color:#22c55e;
+}
+
+.tile.wrong{
+  background:#fee2e2;
+  border-color:#ef4444;
+}
