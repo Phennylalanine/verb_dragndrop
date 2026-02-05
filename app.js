@@ -1,16 +1,11 @@
 /****************************************************
- * Verb Match Game — Single Verb Mode
- * One verb at a time (JP shown, drag correct EN form)
- * Features preserved:
- *  - XP + Levels (persistent)
- *  - Combo streak
- *  - Timer + Best Time
- *  - SFX
+ * Verb Match Game — Single Verb Mode (CLICK MODE)
+ * One verb at a time (JP shown, click correct EN form)
+ * Randomized order + no drag/drop
  ****************************************************/
 
 // ---------- DOM ----------
-const verbPrompt = document.getElementById('verbPrompt'); // NEW: display current jpB
-const answerZone = document.getElementById('answerZone'); // NEW: single dropzone
+const verbPrompt = document.getElementById('verbPrompt');
 const tileBank = document.getElementById('tileBank');
 const scoreEl = document.getElementById('score');
 const resetBtn = document.getElementById('resetBtn');
@@ -30,8 +25,8 @@ const LS_BEST = 'vm_bestTime';
 
 // ---------- Game State ----------
 let dataRows = [];
+let rounds = []; // shuffled rounds
 let currentIndex = 0;
-let currentKind = 'enB'; // enB or enP
 let placedCount = 0;
 
 let combo = 1;
@@ -211,9 +206,10 @@ function parseCSV(text) {
 function initFromCSV(text) {
   dataRows = parseCSV(text);
 
+  buildRounds();
+
   currentIndex = 0;
   placedCount = 0;
-
   combo = 1;
   sessionStarted = false;
 
@@ -226,22 +222,33 @@ function initFromCSV(text) {
   updateHUD();
 }
 
+// ---------- Build Random Order ----------
+function buildRounds() {
+  rounds = [];
+
+  dataRows.forEach(row => {
+    rounds.push({ row, kind: 'enB' });
+    rounds.push({ row, kind: 'enP' });
+  });
+
+  shuffle(rounds);
+}
+
 // ---------- Game Logic ----------
 function nextRound() {
-  if (currentIndex >= dataRows.length * 2) {
+  if (currentIndex >= rounds.length) {
     stopTimerAndMaybeSetBest();
     safePlay(SFX.finish);
     return;
   }
 
   tileBank.innerHTML = '';
-  answerZone.innerHTML = '';
 
-  const row = dataRows[Math.floor(currentIndex / 2)];
+  const round = rounds[currentIndex];
+  const row = round.row;
 
-  currentKind = currentIndex % 2 === 0 ? 'enB' : 'enP';
-
-  verbPrompt.textContent = row.jpB + ' (' + (currentKind === 'enB' ? 'Base' : 'Past') + ')';
+  verbPrompt.textContent =
+    row.jpB + ' (' + (round.kind === 'enB' ? 'Base' : 'Past') + ')';
 
   const options = shuffle([
     row.enB,
@@ -249,7 +256,7 @@ function nextRound() {
     ...getRandomDistractors(row)
   ]).slice(0, 4);
 
-  options.forEach((txt, i) => createTile(txt, i));
+  options.forEach(txt => createTile(txt));
 }
 
 function getRandomDistractors(currentRow) {
@@ -265,52 +272,31 @@ function getRandomDistractors(currentRow) {
   return out;
 }
 
-function createTile(text, i) {
+// ---------- Click Tile ----------
+function createTile(text) {
   const el = document.createElement('div');
 
   el.className = 'tile';
-  el.id = 'tile-' + i;
   el.textContent = text;
-  el.draggable = true;
   el.dataset.missed = '0';
 
-  el.addEventListener('dragstart', e => {
-    e.dataTransfer.setData('text/plain', el.id);
+  el.addEventListener('click', () => {
     startTimer();
+    handleAnswer(el);
   });
 
   tileBank.appendChild(el);
 }
 
-// ---------- Dropzone ----------
-answerZone.addEventListener('dragover', e => {
-  e.preventDefault();
-  answerZone.classList.add('hover');
-});
+function handleAnswer(tile) {
+  const round = rounds[currentIndex];
+  const row = round.row;
 
-answerZone.addEventListener('dragleave', () => {
-  answerZone.classList.remove('hover');
-});
-
-answerZone.addEventListener('drop', e => {
-  e.preventDefault();
-  answerZone.classList.remove('hover');
-
-  if (answerZone.querySelector('.tile')) return;
-
-  const id = e.dataTransfer.getData('text/plain');
-  const tile = document.getElementById(id);
-  if (!tile) return;
-
-  startTimer();
-
-  const row = dataRows[Math.floor(currentIndex / 2)];
-  const correct = currentKind === 'enB' ? row.enB : row.enP;
+  const correct =
+    round.kind === 'enB' ? row.enB : row.enP;
 
   if (tile.textContent === correct) {
-    answerZone.appendChild(tile);
     tile.classList.add('correct');
-    tile.draggable = false;
 
     placedCount++;
     updateScore();
@@ -321,7 +307,8 @@ answerZone.addEventListener('drop', e => {
     if (!missed)
       combo = Math.min(MAX_COMBO_BONUS_X, combo + COMBO_STEP);
 
-    const bonus = 1 + Math.min(combo - 1, MAX_COMBO_BONUS_X) * COMBO_BONUS_PER_X;
+    const bonus =
+      1 + Math.min(combo - 1, MAX_COMBO_BONUS_X) * COMBO_BONUS_PER_X;
 
     addXP(base * bonus);
 
@@ -329,7 +316,7 @@ answerZone.addEventListener('drop', e => {
 
     currentIndex++;
 
-    setTimeout(nextRound, 400);
+    setTimeout(nextRound, 350);
   }
   else {
     tile.classList.add('wrong');
@@ -342,7 +329,7 @@ answerZone.addEventListener('drop', e => {
 
     setTimeout(() => tile.classList.remove('wrong'), 250);
   }
-});
+}
 
 // ---------- Utils ----------
 function shuffle(arr) {
@@ -354,12 +341,14 @@ function shuffle(arr) {
 }
 
 function updateScore() {
-  const total = dataRows.length * 2;
+  const total = rounds.length;
   scoreEl.textContent = `${placedCount} / ${total}`;
 }
 
 // ---------- Controls ----------
 resetBtn.addEventListener('click', () => {
+  buildRounds();
+
   currentIndex = 0;
   placedCount = 0;
   combo = 1;
