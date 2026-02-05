@@ -1,11 +1,12 @@
 /****************************************************
- * Verb Match Game — Single Verb Mode (CLICK MODE)
- * One verb at a time (JP shown, click correct EN form)
- * Randomized order + no drag/drop
+ * Verb Match Game — Leveled Hybrid Mode
+ * L1-3: Click Mode
+ * L4+: Drag Mode
  ****************************************************/
 
 // ---------- DOM ----------
 const verbPrompt = document.getElementById('verbPrompt');
+const answerZone = document.getElementById('answerZone');
 const tileBank = document.getElementById('tileBank');
 const scoreEl = document.getElementById('score');
 const resetBtn = document.getElementById('resetBtn');
@@ -18,79 +19,79 @@ const timerDisplay = document.getElementById('timerDisplay');
 const bestTimeDisplay = document.getElementById('bestTimeDisplay');
 const levelUpPopup = document.getElementById('levelUpPopup');
 
-// ---------- Persistent Keys ----------
+// ---------- Storage ----------
 const LS_LEVEL = 'vm_level';
 const LS_XP = 'vm_xp';
 const LS_BEST = 'vm_bestTime';
 
-// ---------- Game State ----------
+// ---------- State ----------
 let dataRows = [];
-let rounds = []; // shuffled rounds
-let currentIndex = 0;
+let rounds = [];
+let roundIndex = 0;
+
+let currentMode = 'click'; // click | drag
 let placedCount = 0;
 
 let combo = 1;
 let sessionStarted = false;
-let startTimeMs = 0;
-let timerInterval = null;
+let startTime = 0;
+let timerInt = null;
 
 let level = 1;
 let xp = 0;
 
 // ---------- Config ----------
-const BASE_XP_PER_SLOT = 10;
-const PENALTY_MULTIPLIER = 0.5;
+const BASE_XP = 10;
+const PENALTY = 0.5;
 const COMBO_STEP = 1;
-const COMBO_BONUS_PER_X = 0.05;
-const MAX_COMBO_BONUS_X = 10;
+const COMBO_BONUS = 0.05;
+const MAX_COMBO = 10;
 
-// ---------- SFX ----------
+// ---------- Audio ----------
 const SFX = {
   correct: new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABYAAABAAAABAACAgICAAACAgICAAD///8AAP///wAA'),
-  wrong:   new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABYAAABAAAABAACAgICAAP///8AAAD///8AAP///wAA'),
+  wrong: new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABYAAABAAAABAACAgICAAP///8AAAD///8AAP///wAA'),
   levelup: new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABYAAABAAAABAACAgICAAP///8AAAAAAP///wAAAP///wAA'),
-  finish:  new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABYAAABAAAABAACAgICAAP///8A////AP///wAA////AA==')
+  finish: new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABYAAABAAAABAACAgICAAP///8A////AP///wAA////AA==')
 };
+
 Object.values(SFX).forEach(a => a.volume = 0.7);
 
-// ---------- Persistent ----------
+// ---------- Persistence ----------
 function loadPersistent() {
-  const L = parseInt(localStorage.getItem(LS_LEVEL), 10);
-  const X = parseInt(localStorage.getItem(LS_XP), 10);
-  const B = parseFloat(localStorage.getItem(LS_BEST));
+  level = parseInt(localStorage.getItem(LS_LEVEL)) || 1;
+  xp = parseInt(localStorage.getItem(LS_XP)) || 0;
 
-  if (!isNaN(L) && L > 0) level = L;
-  if (!isNaN(X) && X >= 0) xp = X;
-
-  if (!isNaN(B) && B > 0) bestTimeDisplay.textContent = formatSeconds(B);
-  else bestTimeDisplay.textContent = '--';
+  const best = parseFloat(localStorage.getItem(LS_BEST));
+  bestTimeDisplay.textContent = best ? formatTime(best) : '--';
 
   updateHUD();
 }
 
 function savePersistent() {
-  localStorage.setItem(LS_LEVEL, String(level));
-  localStorage.setItem(LS_XP, String(xp));
+  localStorage.setItem(LS_LEVEL, level);
+  localStorage.setItem(LS_XP, xp);
 }
 
 // ---------- XP ----------
-function xpToNextLevel(lv) {
+function xpToNext(lv) {
   return 100 + (lv - 1) * 50;
 }
 
-function addXP(amount) {
-  xp += Math.max(0, Math.floor(amount));
+function addXP(v) {
+  xp += Math.floor(v);
+
   let leveled = false;
 
-  while (xp >= xpToNextLevel(level)) {
-    xp -= xpToNextLevel(level);
+  while (xp >= xpToNext(level)) {
+    xp -= xpToNext(level);
     level++;
     leveled = true;
   }
 
   if (leveled) {
     showLevelUp();
-    safePlay(SFX.levelup);
+    play(SFX.levelup);
   }
 
   savePersistent();
@@ -98,19 +99,14 @@ function addXP(amount) {
 }
 
 function updateHUD() {
-  levelDisplay.textContent = String(level);
+  levelDisplay.textContent = level;
 
-  const need = xpToNextLevel(level);
-  const pct = Math.min(100, Math.round((xp / need) * 100));
+  const need = xpToNext(level);
+  const pct = Math.min(100, (xp / need) * 100);
 
   xpBar.style.width = pct + '%';
   xpText.textContent = `${xp} / ${need}`;
-  comboDisplay.textContent = 'x' + Math.max(1, combo);
-}
-
-function showLevelUp() {
-  levelUpPopup.style.display = 'block';
-  setTimeout(() => levelUpPopup.style.display = 'none', 1300);
+  comboDisplay.textContent = 'x' + combo;
 }
 
 // ---------- Timer ----------
@@ -118,253 +114,279 @@ function startTimer() {
   if (sessionStarted) return;
 
   sessionStarted = true;
-  startTimeMs = performance.now();
+  startTime = performance.now();
 
-  timerInterval = setInterval(() => {
-    const t = (performance.now() - startTimeMs) / 1000;
-    timerDisplay.textContent = formatSeconds(t);
+  timerInt = setInterval(() => {
+    const t = (performance.now() - startTime) / 1000;
+    timerDisplay.textContent = formatTime(t);
   }, 100);
 }
 
-function stopTimerAndMaybeSetBest() {
+function stopTimer() {
   if (!sessionStarted) return;
 
-  clearInterval(timerInterval);
-  timerInterval = null;
+  clearInterval(timerInt);
 
-  const t = (performance.now() - startTimeMs) / 1000;
-  timerDisplay.textContent = formatSeconds(t);
+  const t = (performance.now() - startTime) / 1000;
 
   const prev = parseFloat(localStorage.getItem(LS_BEST));
 
-  if (isNaN(prev) || t < prev) {
-    localStorage.setItem(LS_BEST, String(t));
-    bestTimeDisplay.textContent = formatSeconds(t);
+  if (!prev || t < prev) {
+    localStorage.setItem(LS_BEST, t);
+    bestTimeDisplay.textContent = formatTime(t);
   }
 }
 
-function formatSeconds(s) {
-  return s.toFixed(1) + 's';
-}
-
-// ---------- Audio ----------
-function safePlay(a) {
+// ---------- Helpers ----------
+function play(a) {
   try {
     a.currentTime = 0;
     a.play();
   } catch {}
 }
 
-// ---------- CSV ----------
-async function loadDefaultCSV() {
-  let base = window.location.href.replace(/index\.html?$/, '');
-  const csvURL = base + 'words.csv';
-
-  try {
-    const res = await fetch(csvURL, { cache: 'no-store' });
-    if (!res.ok) throw new Error();
-
-    const txt = await res.text();
-    initFromCSV(txt);
-  } catch {
-    console.warn('Could not load words.csv');
-  }
+function formatTime(t) {
+  return t.toFixed(1) + 's';
 }
 
-function parseCSV(text) {
-  const lines = text.split(/\r?\n/).map(l => l.trim());
-  if (!lines.length) return [];
+// ---------- CSV ----------
+async function loadCSV() {
+  const base = location.href.replace(/index\.html?$/, '');
+  const url = base + 'words.csv';
 
-  lines[0] = lines[0].replace(/^\ufeff/, '');
+  const res = await fetch(url, { cache: 'no-store' });
+  const txt = await res.text();
 
+  init(parseCSV(txt));
+}
+
+function parseCSV(txt) {
+  const lines = txt.split(/\r?\n/).map(l => l.trim());
   const h = lines[0].split(',');
-  const iJP = h.indexOf('jpB');
-  const iENB = h.indexOf('enB');
-  const iENP = h.indexOf('enP');
 
-  if (iJP < 0 || iENB < 0 || iENP < 0)
-    throw new Error('Header must be jpB,enB,enP');
+  const jp = h.indexOf('jpB');
+  const enB = h.indexOf('enB');
+  const enP = h.indexOf('enP');
 
-  const rows = [];
+  const out = [];
 
   for (let i = 1; i < lines.length; i++) {
     if (!lines[i]) continue;
 
     const p = lines[i].split(',');
-    if (p.length < 3) continue;
 
-    rows.push({
-      jpB: p[iJP],
-      enB: p[iENB],
-      enP: p[iENP]
+    out.push({
+      jp: p[jp],
+      base: p[enB],
+      past: p[enP]
     });
-  }
-
-  return rows;
-}
-
-function initFromCSV(text) {
-  dataRows = parseCSV(text);
-
-  buildRounds();
-
-  currentIndex = 0;
-  placedCount = 0;
-  combo = 1;
-  sessionStarted = false;
-
-  if (timerInterval) clearInterval(timerInterval);
-  timerInterval = null;
-  timerDisplay.textContent = '0.0s';
-
-  nextRound();
-  updateScore();
-  updateHUD();
-}
-
-// ---------- Build Random Order ----------
-function buildRounds() {
-  rounds = [];
-
-  dataRows.forEach(row => {
-    rounds.push({ row, kind: 'enB' });
-    rounds.push({ row, kind: 'enP' });
-  });
-
-  shuffle(rounds);
-}
-
-// ---------- Game Logic ----------
-function nextRound() {
-  if (currentIndex >= rounds.length) {
-    stopTimerAndMaybeSetBest();
-    safePlay(SFX.finish);
-    return;
-  }
-
-  tileBank.innerHTML = '';
-
-  const round = rounds[currentIndex];
-  const row = round.row;
-
-  verbPrompt.textContent =
-    row.jpB + ' (' + (round.kind === 'enB' ? 'Base' : 'Past') + ')';
-
-  const options = shuffle([
-    row.enB,
-    row.enP,
-    ...getRandomDistractors(row)
-  ]).slice(0, 4);
-
-  options.forEach(txt => createTile(txt));
-}
-
-function getRandomDistractors(currentRow) {
-  const pool = dataRows.filter(r => r !== currentRow);
-  shuffle(pool);
-
-  const out = [];
-
-  for (let i = 0; i < pool.length && out.length < 2; i++) {
-    out.push(pool[i].enB, pool[i].enP);
   }
 
   return out;
 }
 
-// ---------- Click Tile ----------
-function createTile(text) {
+// ---------- Init ----------
+function init(rows) {
+  dataRows = rows;
+
+  buildRounds();
+  resetSession();
+}
+
+// ---------- Round Builder ----------
+function buildRounds() {
+  rounds = [];
+
+  dataRows.forEach(r => {
+    rounds.push({ row: r, type: 'base' });
+    rounds.push({ row: r, type: 'past' });
+  });
+
+  shuffle(rounds);
+}
+
+// ---------- Session ----------
+function resetSession() {
+  roundIndex = 0;
+  placedCount = 0;
+  combo = 1;
+
+  sessionStarted = false;
+  clearInterval(timerInt);
+
+  timerDisplay.textContent = '0.0s';
+
+  currentMode = level <= 3 ? 'click' : 'drag';
+
+  updateScore();
+  updateHUD();
+
+  nextRound();
+}
+
+// ---------- Game Flow ----------
+function nextRound() {
+  if (roundIndex >= rounds.length) {
+    stopTimer();
+    play(SFX.finish);
+    return;
+  }
+
+  tileBank.innerHTML = '';
+  answerZone.innerHTML = '';
+
+  const r = rounds[roundIndex];
+
+  const label = r.type === 'base'
+    ? '現在形（Base）'
+    : '過去形（Past）';
+
+  verbPrompt.innerHTML = `
+    <div class="jp-big">${r.row.jp}</div>
+    <div class="jp-label">${label}</div>
+  `;
+
+  const options = buildOptions(r);
+
+  options.forEach(makeTile);
+}
+
+// ---------- Options ----------
+function buildOptions(r) {
+  let pool = [];
+
+  dataRows.forEach(x => {
+    pool.push(x.base, x.past);
+  });
+
+  const correct = r.type === 'base'
+    ? r.row.base
+    : r.row.past;
+
+  pool = pool.filter(x => x !== correct);
+
+  shuffle(pool);
+
+  const opts = [correct, ...pool.slice(0, 3)];
+
+  return shuffle(opts);
+}
+
+// ---------- Tiles ----------
+function makeTile(text) {
   const el = document.createElement('div');
 
   el.className = 'tile';
   el.textContent = text;
   el.dataset.missed = '0';
 
+  // Click support
   el.addEventListener('click', () => {
-    startTimer();
-    handleAnswer(el);
+    if (currentMode === 'click') checkAnswer(el);
   });
+
+  // Drag support
+  if (currentMode === 'drag') {
+    el.draggable = true;
+
+    el.addEventListener('dragstart', e => {
+      e.dataTransfer.setData('text/plain', text);
+      startTimer();
+    });
+  }
 
   tileBank.appendChild(el);
 }
 
-function handleAnswer(tile) {
-  const round = rounds[currentIndex];
-  const row = round.row;
+// ---------- Drop ----------
+answerZone.addEventListener('dragover', e => {
+  if (currentMode === 'drag') e.preventDefault();
+});
 
-  const correct =
-    round.kind === 'enB' ? row.enB : row.enP;
+answerZone.addEventListener('drop', e => {
+  if (currentMode !== 'drag') return;
 
-  if (tile.textContent === correct) {
-    tile.classList.add('correct');
+  e.preventDefault();
+
+  const txt = e.dataTransfer.getData('text/plain');
+  checkAnswerByText(txt);
+});
+
+// ---------- Check ----------
+function checkAnswer(tile) {
+  checkAnswerByText(tile.textContent, tile);
+}
+
+function checkAnswerByText(txt, tileEl) {
+  startTimer();
+
+  const r = rounds[roundIndex];
+
+  const correct = r.type === 'base'
+    ? r.row.base
+    : r.row.past;
+
+  if (txt === correct) {
+    if (tileEl) {
+      tileEl.classList.add('correct');
+      tileEl.style.pointerEvents = 'none';
+    }
 
     placedCount++;
     updateScore();
 
-    const missed = tile.dataset.missed === '1';
-    const base = BASE_XP_PER_SLOT * (missed ? PENALTY_MULTIPLIER : 1);
+    const missed = tileEl?.dataset.missed === '1';
 
     if (!missed)
-      combo = Math.min(MAX_COMBO_BONUS_X, combo + COMBO_STEP);
+      combo = Math.min(MAX_COMBO, combo + COMBO_STEP);
 
-    const bonus =
-      1 + Math.min(combo - 1, MAX_COMBO_BONUS_X) * COMBO_BONUS_PER_X;
+    const base = BASE_XP * (missed ? PENALTY : 1);
+    const bonus = 1 + (combo - 1) * COMBO_BONUS;
 
     addXP(base * bonus);
 
-    safePlay(SFX.correct);
+    play(SFX.correct);
 
-    currentIndex++;
+    roundIndex++;
 
-    setTimeout(nextRound, 350);
+    setTimeout(nextRound, 400);
   }
   else {
-    tile.classList.add('wrong');
-    tile.dataset.missed = '1';
+    if (tileEl) {
+      tileEl.classList.add('wrong');
+      tileEl.dataset.missed = '1';
+
+      setTimeout(() => tileEl.classList.remove('wrong'), 250);
+    }
 
     combo = 1;
     updateHUD();
 
-    safePlay(SFX.wrong);
-
-    setTimeout(() => tile.classList.remove('wrong'), 250);
+    play(SFX.wrong);
   }
 }
 
 // ---------- Utils ----------
-function shuffle(arr) {
-  for (let i = arr.length - 1; i > 0; i--) {
+function shuffle(a) {
+  for (let i = a.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
+    [a[i], a[j]] = [a[j], a[i]];
   }
-  return arr;
+  return a;
 }
 
 function updateScore() {
-  const total = rounds.length;
-  scoreEl.textContent = `${placedCount} / ${total}`;
+  scoreEl.textContent = `${placedCount} / ${rounds.length}`;
+}
+
+function showLevelUp() {
+  levelUpPopup.style.display = 'block';
+  setTimeout(() => levelUpPopup.style.display = 'none', 1300);
 }
 
 // ---------- Controls ----------
-resetBtn.addEventListener('click', () => {
-  buildRounds();
-
-  currentIndex = 0;
-  placedCount = 0;
-  combo = 1;
-
-  sessionStarted = false;
-  if (timerInterval) clearInterval(timerInterval);
-  timerInterval = null;
-
-  timerDisplay.textContent = '0.0s';
-
-  updateHUD();
-  updateScore();
-
-  nextRound();
-});
+resetBtn.addEventListener('click', resetSession);
 
 // ---------- Boot ----------
 loadPersistent();
-loadDefaultCSV();
+loadCSV();
