@@ -237,9 +237,10 @@ function nextRound() {
 
   const r = rounds[roundIndex];
 
-  const label = r.type === 'base'
-    ? '現在形（Base）'
-    : '過去形（Past）';
+  const label =
+    r.type === 'base'
+      ? '現在形（Base）'
+      : '過去形（Past）';
 
   verbPrompt.innerHTML = `
     <div class="jp-big">${r.row.jp}</div>
@@ -259,9 +260,10 @@ function buildOptions(r) {
     pool.push(x.base, x.past);
   });
 
-  const correct = r.type === 'base'
-    ? r.row.base
-    : r.row.past;
+  const correct =
+    r.type === 'base'
+      ? r.row.base
+      : r.row.past;
 
   pool = pool.filter(x => x !== correct);
 
@@ -280,12 +282,14 @@ function makeTile(text) {
   el.textContent = text;
   el.dataset.missed = '0';
 
-  // Click support
+  // Click
   el.addEventListener('click', () => {
-    if (currentMode === 'click') checkAnswer(el);
+    if (currentMode === 'click' && !el.classList.contains('used')) {
+      checkAnswer(el);
+    }
   });
 
-  // Drag support
+  // Drag
   if (currentMode === 'drag') {
     el.draggable = true;
 
@@ -322,23 +326,33 @@ function checkAnswerByText(txt, tileEl) {
 
   const r = rounds[roundIndex];
 
-  const correct = r.type === 'base'
-    ? r.row.base
-    : r.row.past;
+  const correct =
+    r.type === 'base'
+      ? r.row.base
+      : r.row.past;
 
   if (txt === correct) {
+
+    // Mark used (click mode)
     if (tileEl) {
-      tileEl.classList.add('correct');
-      tileEl.style.pointerEvents = 'none';
+      tileEl.classList.add('correct', 'used');
     }
+
+    // Mark used (drag mode safety)
+    document.querySelectorAll('.tile').forEach(t => {
+      if (t.textContent === txt) {
+        t.classList.add('correct', 'used');
+      }
+    });
 
     placedCount++;
     updateScore();
 
     const missed = tileEl?.dataset.missed === '1';
 
-    if (!missed)
+    if (!missed) {
       combo = Math.min(MAX_COMBO, combo + COMBO_STEP);
+    }
 
     const base = BASE_XP * (missed ? PENALTY : 1);
     const bonus = 1 + (combo - 1) * COMBO_BONUS;
@@ -352,11 +366,14 @@ function checkAnswerByText(txt, tileEl) {
     setTimeout(nextRound, 400);
   }
   else {
+
     if (tileEl) {
       tileEl.classList.add('wrong');
       tileEl.dataset.missed = '1';
 
-      setTimeout(() => tileEl.classList.remove('wrong'), 250);
+      setTimeout(() => {
+        tileEl.classList.remove('wrong');
+      }, 250);
     }
 
     combo = 1;
@@ -381,7 +398,10 @@ function updateScore() {
 
 function showLevelUp() {
   levelUpPopup.style.display = 'block';
-  setTimeout(() => levelUpPopup.style.display = 'none', 1300);
+
+  setTimeout(() => {
+    levelUpPopup.style.display = 'none';
+  }, 1300);
 }
 
 // ---------- Controls ----------
