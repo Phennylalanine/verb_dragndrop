@@ -2,6 +2,7 @@
  * Verb Match Game — Leveled Hybrid Mode
  * L1-3: Click Mode
  * L4+: Drag Mode
+ * All answers shown
  ****************************************************/
 
 // ---------- DOM ----------
@@ -269,7 +270,8 @@ function buildOptions(r) {
 
   shuffle(pool);
 
-  const opts = [correct, ...pool.slice(0, 3)];
+  // Show ALL answers
+  const opts = [correct, ...pool];
 
   return shuffle(opts);
 }
@@ -333,12 +335,10 @@ function checkAnswerByText(txt, tileEl) {
 
   if (txt === correct) {
 
-    // Mark used (click mode)
     if (tileEl) {
       tileEl.classList.add('correct', 'used');
     }
 
-    // Mark used (drag mode safety)
     document.querySelectorAll('.tile').forEach(t => {
       if (t.textContent === txt) {
         t.classList.add('correct', 'used');
